@@ -1,5 +1,6 @@
 #include "msvcr.h"
-#include <TlHelp32.h>
+
+#include <tlhelp32.h>
 
 HMODULE msvcr_module = NULL;
 

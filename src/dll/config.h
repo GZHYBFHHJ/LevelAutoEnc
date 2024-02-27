@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-struct _config {
+extern struct _config {
     char decOut[MAX_PATH];
     char encOut[MAX_PATH];
 
