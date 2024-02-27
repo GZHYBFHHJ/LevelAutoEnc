@@ -1,7 +1,7 @@
 set_xmakever("2.5.6")
 set_project("ABAutoEnc")
 
-set_version("0.1.0", {build = "%Y%m%d%H%M"})
+set_version("0.2.0", {build = "%Y%m%d%H%M"})
 
 
 add_rules("mode.minsizerel", "mode.debug")
