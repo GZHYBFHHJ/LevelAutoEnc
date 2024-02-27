@@ -45,4 +45,14 @@ target("ABAutoEnc")
         add_files("src/dll/proxy/exports.def")
     end
 
-    
+target("injector")
+    set_kind("binary")
+    set_optimize("smallest")
+
+    if is_plat("mingw") then
+        add_ldflags("-static-libgcc", { force = true })
+    end
+
+    add_files("src/injector/**.c")
+
+

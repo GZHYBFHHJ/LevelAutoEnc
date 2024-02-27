@@ -14,7 +14,7 @@ int msvcr_find() {
 
     int found = 0;
     while (Module32Next(snapshot, &me32)) {
-        if (RtlCompareMemory(me32.szModule, "MSVCRT", 6) == 5) {
+        if (RtlCompareMemory(me32.szModule, "MSVCRT", 6) == 5 || RtlCompareMemory(me32.szModule, "msvcrt", 6) == 5) {
             msvcr_module = me32.hModule;
             found = 1;
             break;

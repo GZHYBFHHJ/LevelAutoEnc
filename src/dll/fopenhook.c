@@ -287,10 +287,18 @@ void fopenhook_init() {
         return;
     }
 
-    procHook(GetProcAddress(msvcr_module, "fopen"), &_fopen_hookfunc, &_fopen_hook);
-    procHook(GetProcAddress(msvcr_module, "_wfopen"), &_wfopen_hookfunc, &_wfopen_hook);
+    FARPROC proc_fopen = GetProcAddress(msvcr_module, "fopen");
+    FARPROC proc_wfopen = GetProcAddress(msvcr_module, "_wfopen");
 
-    fopen = (fopen_pt)GetProcAddress(msvcr_module, "fopen");
+    if (proc_fopen == NULL && proc_wfopen == NULL) {
+        MessageBox(NULL, TEXT("API 'fopen' and '_wfopen' not found"), TEXT("Error"), 0);
+        return;
+    }
+
+    procHook(proc_fopen, &_fopen_hookfunc, &_fopen_hook);
+    procHook(proc_wfopen, &_wfopen_hookfunc, &_wfopen_hook);
+
+    fopen = (fopen_pt)proc_fopen;
 
     runPathLen = GetCurrentDirectoryA(MAX_PATH - 1, runPath);
     int i = 0;
