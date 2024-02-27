@@ -51,7 +51,7 @@ void proxy_unloadDll() {
 #define PROXY_FUNC_10(ret, name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9) PROXY_DEFINES(ret, name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9) \
                                                                          ret WINAPI name(p0 _0, p1 _1, p2 _2, p3 _3, p4 _4, p5 _5, p6 _6, p7 _7, p8 _8, p9 _9) { \
                                                                              PROXY_GETFUNC(name); \
-                                                                             return ((name##_TYPE)name##_PTR)(_0, _1, _2, _3, _4, _5, _6, _7, _9, _9); \
+                                                                             return ((name##_TYPE)name##_PTR)(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9); \
                                                                          }
 
 
