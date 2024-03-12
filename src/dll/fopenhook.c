@@ -205,13 +205,13 @@ static FILE *_fopen_hookfunc(const char *filename, const char *mode) {
     procUnhook(&_fopen_hook);
 
     if (strlen(filename) > 4 && RtlEqualMemory(filename + strlen(filename) - 4, ".lua", 4)) { // lua file
-        if (strstr(filename, ":/") || !strstr(filename, "/")) {
-            if (strlen(filename) > runPathLen && RtlEqualMemory(filename, runPath, runPathLen)) { // Classic 4.0.0
-                filename += runPathLen;
-            } else { // config.lua or save file
-                res = fopen(filename, mode);
-                goto ret;
-            }
+        if (strlen(filename) > runPathLen && RtlEqualMemory(filename, runPath, runPathLen)) { // Classic 4.0.0
+            filename += runPathLen;
+        }
+
+        if (strstr(filename, ":/") || !strstr(filename, "/")) { // config.lua or save file
+            res = fopen(filename, mode);
+            goto ret;
         }
         if (RtlEqualMemory(mode, "wb", 2)) { // save level
             if (!config.appendFn) {
