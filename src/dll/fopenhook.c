@@ -50,16 +50,11 @@ static int tryDecrypt(const char *filename) {
         CloseHandle(hFile);
         return 0;
     }
-    int i = 0;
-    while (i < size) {
-        DWORD read;
-        if (!ReadFile(hFile, filedata + i, size - i, &read, NULL)) {
-            logging_printf("Failed to read data");
-            VirtualFree(filedata, 0, MEM_RELEASE);
-            CloseHandle(hFile);
-            return 0;
-        }
-        i += read;
+    if (!ReadFile(hFile, filedata, size, NULL, NULL)) {
+        logging_printf("Failed to read data");
+        VirtualFree(filedata, 0, MEM_RELEASE);
+        CloseHandle(hFile);
+        return 0;
     }
     CloseHandle(hFile);
 
@@ -115,16 +110,7 @@ static int tryDecrypt(const char *filename) {
         return 1;
     }
 
-    i = 0;
-    while (i < reslen) {
-        DWORD read;
-        if (!WriteFile(hFile, res + i, reslen - i, &read, NULL)) {
-            CloseHandle(hFile);
-            VirtualFree(res, 0, MEM_RELEASE);
-            return 1;
-        }
-        i += read;
-    }
+    WriteFile(hFile, res, reslen, NULL, NULL);
 
     CloseHandle(hFile);
     VirtualFree(res, 0, MEM_RELEASE);
@@ -149,16 +135,11 @@ static int tryEncrypt(const char *filename, char *outpath) {
         CloseHandle(hFile);
         return 0;
     }
-    int i = 0;
-    while (i < size) {
-        DWORD read;
-        if (!ReadFile(hFile, filedata + i, size - i, &read, NULL)) {
-            logging_printf("Failed to read data");
-            VirtualFree(filedata, 0, MEM_RELEASE);
-            CloseHandle(hFile);
-            return 0;
-        }
-        i += read;
+    if (!ReadFile(hFile, filedata, size, NULL, NULL)) {
+        logging_printf("Failed to read data");
+        VirtualFree(filedata, 0, MEM_RELEASE);
+        CloseHandle(hFile);
+        return 0;
     }
     CloseHandle(hFile);
 
@@ -214,16 +195,11 @@ static int tryEncrypt(const char *filename, char *outpath) {
         return 0;
     }
 
-    i = 0;
-    while (i < enclen) {
-        DWORD read;
-        if (!WriteFile(hFile, encdata + i, enclen - i, &read, NULL)) {
-            logging_printf("Failed to write result data");
-            CloseHandle(hFile);
-            VirtualFree(encdata, 0, MEM_RELEASE);
-            return 0;
-        }
-        i += read;
+    if (!WriteFile(hFile, encdata, enclen, NULL, NULL)) {
+        logging_printf("Failed to write result data");
+        CloseHandle(hFile);
+        VirtualFree(encdata, 0, MEM_RELEASE);
+        return 0;
     }
 
     CloseHandle(hFile);

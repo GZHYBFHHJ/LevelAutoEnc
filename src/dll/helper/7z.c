@@ -133,15 +133,10 @@ int sevenzip_res_read(SEVENZIP_RESULT *res, unsigned char *output) {
     HANDLE hFile = res->file;
 
     SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-    int i = 0;
     int len = GetFileSize(hFile, NULL);
-    if (len == INVALID_FILE_SIZE) return 0;
-    while (i < len) {
-        DWORD read;
-        if (!ReadFile(hFile, output + i, len - i, &read, NULL)) return 0;
-        i += read;
-    }
-    return 1;
+    if (len == INVALID_FILE_SIZE)
+        return 0;
+    return ReadFile(hFile, output, len - 1, NULL, NULL);
 }
 
 SEVENZIP_RESULT *sevenzip_compress(const unsigned char *input, int inputlen) {
@@ -161,15 +156,10 @@ SEVENZIP_RESULT *sevenzip_compress(const unsigned char *input, int inputlen) {
         return NULL;
     }
 
-    int i = 0;
-    while (i < inputlen) {
-        DWORD write;
-        if (!WriteFile(hIn, input + i, inputlen - i, &write, NULL)) {
-            CloseHandle(hIn);
-            DeleteFileA(in);
-            return NULL;
-        }
-        i += write;
+    if (!WriteFile(hIn, input, inputlen, NULL, NULL)) {
+        CloseHandle(hIn);
+        DeleteFileA(in);
+        return NULL;
     }
     CloseHandle(hIn);
     
@@ -204,15 +194,10 @@ SEVENZIP_RESULT *sevenzip_decompress(const unsigned char *input, int inputlen) {
         return NULL;
     }
 
-    int i = 0;
-    while (i < inputlen) {
-        DWORD write;
-        if (!WriteFile(hIn, input + i, inputlen - i, &write, NULL)) {
-            CloseHandle(hIn);
-            DeleteFileA(in);
-            return NULL;
-        }
-        i += write;
+    if (!WriteFile(hIn, input, inputlen, NULL, NULL)) {
+        CloseHandle(hIn);
+        DeleteFileA(in);
+        return NULL;
     }
     CloseHandle(hIn);
     
