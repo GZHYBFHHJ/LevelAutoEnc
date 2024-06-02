@@ -4,6 +4,8 @@
 #include "config.h"
 #include "msvcr.h"
 
+#include "log.h"
+
 #include "helper/aes.h"
 #include "helper/7z.h"
 
@@ -32,12 +34,19 @@ static void createRoot(const char *path) {
 
 static int tryDecrypt(const char *filename) {
     HANDLE hFile = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    if (hFile == INVALID_HANDLE_VALUE) {
+        logging_printf("Failed to open file (tryDecrypt)");
+        return 0;
+    }
 
     int size = GetFileSize(hFile, NULL);
-    if (size == 0) return 1; // skip empty file
+    if (size == 0) {
+        logging_printf("Empty file, skipping");
+        return 1;
+    }
     unsigned char *filedata = (unsigned char *)VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_READWRITE);
     if (!filedata) {
+        logging_printf("Failed to allocate");
         CloseHandle(hFile);
         return 0;
     }
@@ -45,6 +54,7 @@ static int tryDecrypt(const char *filename) {
     while (i < size) {
         DWORD read;
         if (!ReadFile(hFile, filedata + i, size - i, &read, NULL)) {
+            logging_printf("Failed to read data");
             VirtualFree(filedata, 0, MEM_RELEASE);
             CloseHandle(hFile);
             return 0;
@@ -55,12 +65,14 @@ static int tryDecrypt(const char *filename) {
 
     unsigned char *decdata = (unsigned char *)VirtualAlloc(NULL, size + AES_MAX_BLOCK_LENGTH, MEM_COMMIT, PAGE_READWRITE);
     if (!decdata) {
+        logging_printf("Failed to allocated");
         VirtualFree(filedata, 0, MEM_RELEASE);
         return 0;
     }
     int decsize = aes_decrypt(filedata, size, decdata);
     VirtualFree(filedata, 0, MEM_RELEASE);
     if (decsize == -1) {
+        logging_printf("Bad Decrypt (file is not encrypted)");
         VirtualFree(decdata, 0, MEM_RELEASE);
         return 0;
     }
@@ -71,15 +83,18 @@ static int tryDecrypt(const char *filename) {
         SEVENZIP_RESULT *sr = sevenzip_decompress(decdata, decsize);
         VirtualFree(decdata, 0, MEM_RELEASE);
         if (!sr) {
+            logging_printf("Failed to decompress (file is not compressed or error)");
             return 0;
         }
         reslen = sevenzip_res_length(sr);
         res = (unsigned char *)VirtualAlloc(NULL, reslen, MEM_COMMIT, PAGE_READWRITE);
         if (!res) {
+            logging_printf("Failed to allocate");
             sevenzip_res_free(sr);
             return 0;
         }
         if (!sevenzip_res_read(sr, res)) {
+            logging_printf("Failed to read data");
             VirtualFree(res, 0, MEM_RELEASE);
             sevenzip_res_free(sr);
             return 0;
@@ -89,6 +104,8 @@ static int tryDecrypt(const char *filename) {
 
     char path[521];
     wsprintfA(path, "%s/%s", config.decOut, filename);
+
+    logging_printf("Decryption success. writing decrypted data to `%s`", path);
 
     createRoot(path);
 
@@ -116,11 +133,19 @@ static int tryDecrypt(const char *filename) {
 
 static int tryEncrypt(const char *filename, char *outpath) {
     HANDLE hFile = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) return 0;
+    if (hFile == INVALID_HANDLE_VALUE) {
+        logging_printf("Failed to open file (tryEncrypt read)");
+        return 0;
+    }
 
     int size = GetFileSize(hFile, NULL);
+    if (size == 0) {
+        logging_printf("Empty file. Skipping");
+        return 0;
+    }
     unsigned char *filedata = (unsigned char *)VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_READWRITE);
     if (!filedata) {
+        logging_printf("Failed to allocate");
         CloseHandle(hFile);
         return 0;
     }
@@ -128,6 +153,7 @@ static int tryEncrypt(const char *filename, char *outpath) {
     while (i < size) {
         DWORD read;
         if (!ReadFile(hFile, filedata + i, size - i, &read, NULL)) {
+            logging_printf("Failed to read data");
             VirtualFree(filedata, 0, MEM_RELEASE);
             CloseHandle(hFile);
             return 0;
@@ -142,15 +168,18 @@ static int tryEncrypt(const char *filename, char *outpath) {
         SEVENZIP_RESULT *sr = sevenzip_compress(filedata, size);
         VirtualFree(filedata, 0, MEM_RELEASE);
         if (!sr) {
+            logging_printf("Failed to compress");
             return 0;
         }
         reslen = sevenzip_res_length(sr);
         res = (unsigned char *)VirtualAlloc(NULL, reslen, MEM_COMMIT, PAGE_READWRITE);
         if (!res) {
+            logging_printf("Failed to allocate");
             sevenzip_res_free(sr);
             return 0;
         }
         if (!sevenzip_res_read(sr, res)) {
+            logging_printf("Failed to read compressed data");
             VirtualFree(res, 0, MEM_RELEASE);
             sevenzip_res_free(sr);
             return 0;
@@ -161,21 +190,26 @@ static int tryEncrypt(const char *filename, char *outpath) {
     int enclen;
     unsigned char *encdata = (unsigned char *)VirtualAlloc(NULL, reslen + AES_MAX_BLOCK_LENGTH, MEM_COMMIT, PAGE_READWRITE);
     if (!encdata) {
+        logging_printf("Failed to allocate");
         VirtualFree(res, 0, MEM_RELEASE);
         return 0;
     }
     enclen = aes_encrypt(res, reslen, encdata);
     VirtualFree(res, 0, MEM_RELEASE);
     if (enclen == -1) {
+        logging_printf("Failed to encrypt");
         return 0;
     }
     
     wsprintfA(outpath, "%s/%s", config.encOut, filename);
 
+    logging_printf("Encryption success. Writing encrypted data to %s", outpath);
+
     createRoot(outpath);
 
     hFile = CreateFileA(outpath, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
+        logging_printf("Failed to create file (tryEncrypt write)");
         VirtualFree(res, 0, MEM_RELEASE);
         return 0;
     }
@@ -184,6 +218,7 @@ static int tryEncrypt(const char *filename, char *outpath) {
     while (i < enclen) {
         DWORD read;
         if (!WriteFile(hFile, encdata + i, enclen - i, &read, NULL)) {
+            logging_printf("Failed to write result data");
             CloseHandle(hFile);
             VirtualFree(encdata, 0, MEM_RELEASE);
             return 0;
@@ -204,12 +239,16 @@ static FILE *_fopen_hookfunc(const char *filename, const char *mode) {
     FILE *res = NULL;
     procUnhook(&_fopen_hook);
 
+    logging_printf("fopen: %s (mode: %s)", filename, mode);
+
     if (strlen(filename) > 4 && RtlEqualMemory(filename + strlen(filename) - 4, ".lua", 4)) { // lua file
         if (strlen(filename) > runPathLen && RtlEqualMemory(filename, runPath, runPathLen)) { // Classic 4.0.0
             filename += runPathLen;
+            logging_printf("Relative path: %s", filename);
         }
 
         if (strstr(filename, ":/") || !strstr(filename, "/")) { // config.lua or save file
+            logging_printf("config.lua or save file, skipping");
             res = fopen(filename, mode);
             goto ret;
         }
@@ -218,9 +257,12 @@ static FILE *_fopen_hookfunc(const char *filename, const char *mode) {
                 res = fopen(filename, mode);
                 goto ret;
             }
+
+            logging_printf("Patching filename for saved level file");
             
             HANDLE hFile = CreateFileA(filename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
             if (!hFile) {
+                logging_printf("Failed to open file. fallback");
                 res = fopen(filename, mode);
                 goto ret;
             }
@@ -295,12 +337,14 @@ void fopenhook_init() {
         return;
     }
 
+    logging_printf("Patching `fopen`");
     procHook(proc_fopen, &_fopen_hookfunc, &_fopen_hook);
+    logging_printf("Patching `_wfopen`");
     procHook(proc_wfopen, &_wfopen_hookfunc, &_wfopen_hook);
 
     fopen = (fopen_pt)proc_fopen;
 
-    runPathLen = GetCurrentDirectoryA(MAX_PATH - 1, runPath);
+    runPathLen = GetCurrentDirectoryA(MAX_PATH - 2, runPath);
     int i = 0;
     for (; i < runPathLen; ++i) {
         if (runPath[i] == '\\') {
@@ -309,6 +353,8 @@ void fopenhook_init() {
     }
     runPath[i] = '/';
     ++runPathLen;
+
+    logging_printf("Current Directory: %s", runPath);
 
 }
 

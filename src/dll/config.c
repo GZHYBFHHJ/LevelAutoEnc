@@ -25,6 +25,8 @@ int config_load() {
     if (!config_getbool("Enabled", 0)) {
         return CONFIG_DISABLED;
     }
+
+    config.logging = config_getbool("EnableLogging", 0);
     
     int len = config_getstring("Key", "", config.key, 32 + 1);
     if (len != 32) return CONFIG_INVALIDKEY;

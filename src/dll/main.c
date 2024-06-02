@@ -6,6 +6,8 @@
 #include "msvcr.h"
 #include "fopenhook.h"
 
+#include "log.h"
+
 BOOL WINAPI DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved) {
     switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
@@ -20,6 +22,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved) {
                     MessageBox(NULL, TEXT("Encryption key size must be 32 characters"), TEXT("Invalid Config"), 0);
                 
                 return TRUE;
+            }
+
+            if (config.logging) {
+                logging_enable();
             }
 
             if (!msvcr_find()) {

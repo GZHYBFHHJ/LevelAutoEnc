@@ -4,6 +4,8 @@
 #include <windows.h>
 
 extern struct _config {
+    int logging;
+
     char decOut[MAX_PATH];
     char encOut[MAX_PATH];
 
