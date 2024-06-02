@@ -11,11 +11,14 @@ set_defaultarchs("i386")
 set_allowedplats("windows", "mingw")
 set_allowedarchs("x86", "i386")
 
+includes("packages/*") -- i am not sure is it a proper way to use bit7z
+
 if is_plat("mingw") then
     add_requires("openssl") -- libressl does not support mingw on XMake
 else 
     add_requires("libressl")
 end
+add_requires("bit7z")
 
 
 target("ABAutoEnc")
@@ -23,12 +26,14 @@ target("ABAutoEnc")
     set_optimize("smallest")
 
     if is_plat("mingw") then
-        add_shflags("-static-libgcc", { force = true })
+        add_shflags("-static-libgcc", "-static-libstdc++", { force = true })
     else
         add_cxflags("-GS-", "-MT", { force = true })
     end
 
-    add_links("kernel32", "user32", "ntdll")
+    --add_syslinks("kernel32", "user32")
+    add_syslinks("ntdll")
+    add_syslinks("uuid", "oleaut32") -- for bit7z
 
 
     if is_plat("mingw") then
@@ -36,8 +41,9 @@ target("ABAutoEnc")
     else 
         add_packages("libressl")
     end
+    add_packages("bit7z")
 
-    add_files("src/dll/**.c")
+    add_files("src/dll/**.cpp", "src/dll/**.c")
 
     if is_plat("mingw") then
         add_shflags("src/dll/proxy/exports.def", { force = true })

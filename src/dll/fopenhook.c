@@ -283,7 +283,7 @@ void fopenhook_init() {
     aes_initkey256cbc(config.key);
 
     if (config.compMode == comp7z && !sevenzip_available()) {
-        MessageBoxA(0, "7z.exe not found!\r\nHave you copied '7z.exe' and '7z.dll' to the game directory?", "Error", 0);
+        MessageBoxA(0, "7z.dll not found!\r\nDid you copy '7z.dll' to the game directory?", "Error", 0);
         return;
     }
 
