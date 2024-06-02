@@ -12,7 +12,8 @@
 typedef struct FILE FILE;
 
 static HOOKINFO _fopen_hook = { 0 };
-static HOOKINFO _wfopen_hook = { 0 }; // for ABSpace
+static HOOKINFO _wfopen_hook = { 0 };
+static HOOKINFO _wfsopen_hook = { 0 };
 
 typedef FILE *(*fopen_pt)(const char *filename, const char *mode);
 static fopen_pt fopen;
@@ -296,6 +297,12 @@ static FILE *_wfopen_hookfunc(const wchar_t *filename, const wchar_t *mode) {
     return res;
 }
 
+static FILE *_wfsopen_hookfunc(const wchar_t *filename, const wchar_t *mode, int shflag) {
+    (void)shflag; // discard
+
+    return _wfopen_hookfunc(filename, mode);
+}
+
 
 void fopenhook_init() {
     aes_initkey256cbc(config.key);
@@ -307,16 +314,14 @@ void fopenhook_init() {
 
     FARPROC proc_fopen = GetProcAddress(msvcr_module, "fopen");
     FARPROC proc_wfopen = GetProcAddress(msvcr_module, "_wfopen");
-
-    if (proc_fopen == NULL && proc_wfopen == NULL) {
-        MessageBox(NULL, TEXT("API 'fopen' and '_wfopen' not found"), TEXT("Error"), 0);
-        return;
-    }
+    FARPROC proc_wfsopen = GetProcAddress(msvcr_module, "_wfsopen");
 
     logging_printf("Patching `fopen`");
     procHook(proc_fopen, &_fopen_hookfunc, &_fopen_hook);
     logging_printf("Patching `_wfopen`");
     procHook(proc_wfopen, &_wfopen_hookfunc, &_wfopen_hook);
+    logging_printf("Patching `_wfsopen`");
+    procHook(proc_wfopen, &_wfopen_hookfunc, &_wfsopen_hook);
 
     fopen = (fopen_pt)proc_fopen;
 
